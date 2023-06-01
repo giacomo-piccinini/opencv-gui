@@ -1,0 +1,28 @@
+{
+    "functions": [
+        {
+            "name": "imread",
+            "exec": "imread",
+            "params": [
+                {
+                    "name": "filename",
+                    "type": "filepicker",
+                    "required": true,
+                    "default": "assets/images/test/skyfhd.jpg"
+                },
+                {
+                    "name": "flags",
+                    "type": "int",
+                    "required": false,
+                    "default": 0
+                }
+            ],
+            "return": [
+                {
+                    "name": "image",
+                    "type": "mat"
+                }
+            ]
+        }
+    ]
+}

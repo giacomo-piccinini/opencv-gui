@@ -16,5 +16,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     MainApplication(root).pack(side="top", fill="both", expand=True)
     #root.geometry("800x600")
-    root.state('zoomed')
+    # root.state('zoomed')
+
+    # ubuntu
+    root.attributes('-zoomed', True)
     root.mainloop()

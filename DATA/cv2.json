@@ -12,9 +12,43 @@
                 },
                 {
                     "name": "flags",
-                    "type": "int",
+                    "type": "imreadModes",
                     "required": false,
-                    "default": 0
+                    "default": "IMREAD_COLOR"
+                }
+            ],
+            "return": [
+                {
+                    "name": "image",
+                    "type": "mat"
+                }
+            ]
+        },
+        {
+            "name": "blur",
+            "exec": "blur",
+            "params": [
+                {
+                    "name": "src",
+                    "type": "mat",
+                    "required": true
+                },
+                {
+                    "name": "ksize",
+                    "type": "Size",
+                    "required": true
+                },
+                {
+                    "name": "anchor",
+                    "type": "Point",
+                    "required" : false,
+                    "default": "(-1,-1)"
+                },
+                {
+                    "name": "borderType",
+                    "type": "borderType",
+                    "required": false,
+                    "default": "BORDER_DEFAULT"
                 }
             ],
             "return": [

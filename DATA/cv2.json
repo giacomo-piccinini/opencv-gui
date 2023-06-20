@@ -7,8 +7,7 @@
                 {
                     "name": "filename",
                     "type": "filepicker",
-                    "required": true,
-                    "default": "assets/images/test/skyfhd.jpg"
+                    "required": true
                 },
                 {
                     "name": "flags",

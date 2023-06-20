@@ -1,4 +1,5 @@
 import tkinter as tk
+import logging
 import json
 import cv2
 
@@ -21,15 +22,6 @@ class Node(tk.Frame):
         self.body = tk.Frame(self, bg=BODY_COLOR)
         self.body.pack(fill="both", expand=True)
 
-
-# class CVNode(Node):
-#     def __init__(self, parent, *args, **kwargs):
-#         Node.__init__(self, parent, *args, **kwargs)
-#         self.cvFunction = None
-#         self.cvFunctionArgs = None
-#         self.inputElements = []
-#         self.outputElements = []
-
 class CVNode(Node):
     def __init__(self, graph, parent, execname, *args, **kwargs):
         Node.__init__(self, graph, parent, *args, **kwargs)
@@ -37,11 +29,10 @@ class CVNode(Node):
         self.data = json.load(open("DATA/cv2.json"))
         
         self.execname = execname
-        self.var1 = 'assets/images/icons/IOGreen-16px.png'
-        self.var2 = 1
+        #self.var1 = 'assets/images/icons/IOGreen-16px.png'
+        #self.var2 = 1
 
-        # self.values = [self.var1, self.var2]
-        self.values = [self.var1, self.var2]
+        self.values = [] #[self.var1, self.var2]
         self.kwvalues = {}
 
         self.cvFunctionArgs = []                    # input params type + default
@@ -60,6 +51,7 @@ class CVNode(Node):
             if func["name"] == self.execname:
                 self.funcdata = func
                 break
+
         for arg in self.funcdata["params"]:
             dd = {
                 "name": arg["name"],
@@ -78,27 +70,21 @@ class CVNode(Node):
             }
             self.cvFunctionOutput.append(dd)
 
-        for i in range(len(self.values), len(self.cvFunctionArgs)):
-            val = self.cvFunctionArgs[i]["value"]
-            # self.values.append(getattr(cv2, val))
-            if self.cvFunctionArgs[i]["type"] == "borderType" or self.cvFunctionArgs[i]["type"] == "imreadModes":
-                self.values.append(getattr(cv2, val))
-            else:
-                self.values.append(val)
+        # for i in range(len(self.values), len(self.cvFunctionArgs)):
+        #     val = self.cvFunctionArgs[i]["value"]
+        #     # self.values.append(getattr(cv2, val))
+        #     if self.cvFunctionArgs[i]["type"] == "borderType" or self.cvFunctionArgs[i]["type"] == "imreadModes":
+        #         self.values.append(getattr(cv2, val))
+        #     else:
+        #         self.values.append(val)
             
-
-        
-
     def init_gui(self):
         self.title.config(text=self.execname)
-        i = 0
-        o = 0
+
         for output in self.cvFunctionOutput:
-            self.outputElements.append(NodeOutput(self.body, self, o))
-            o += 1
+            output['node_gui'] = NodeOutput(self.body, self, output["name"])
         for input in self.cvFunctionArgs:
-            self.inputElements.append(NodeInput(self.body, self, i))
-            i += 1
+            input['node_gui'] = NodeInput(self.body, self, input["name"])
 
     def run(self):
         print("Values: {}".format(self.values))
@@ -126,7 +112,7 @@ class CVNode(Node):
 
 
 class IOElement(tk.Frame):
-    def __init__(self, parent, node, idx, *args, **kwargs):
+    def __init__(self, parent, node, name, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.config(bg=BODY_COLOR)
@@ -134,7 +120,7 @@ class IOElement(tk.Frame):
         self.waiting_connection = False
 
         self.node = node
-        self.index = idx
+        self.name = name
         
         self.normal = tk.PhotoImage(file="assets/images/icons/IOMedGrey-16px.png")
         self.hovered = tk.PhotoImage(file="assets/images/icons/IOLightGrey-16px.png")
@@ -174,7 +160,7 @@ class NodeInput(IOElement):
         IOElement.__init__(self, *args, **kwargs)
         self.icon.pack(side="left")
         
-        txt = self.node.cvFunctionArgs[self.index]["name"]
+        txt = self.name
         self.text.configure(text=txt)
         self.text.pack(side="left")
 
@@ -205,7 +191,7 @@ class NodeOutput(IOElement):
         IOElement.__init__(self, *args, **kwargs)
         self.icon.pack(side="right")
 
-        txt = self.node.cvFunctionOutput[self.index]["name"]
+        txt = self.name
         self.text.configure(text=txt)
         self.text.pack(side="right")
 

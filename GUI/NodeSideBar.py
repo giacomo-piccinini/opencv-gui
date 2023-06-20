@@ -2,6 +2,7 @@ import tkinter as tk
 import cv2
 import json
 from PIL import Image, ImageTk
+from SideBarParams import SizeField, FilePickerField, ComboboxField
 
 
 class NodeSideBar(tk.Frame):
@@ -9,7 +10,10 @@ class NodeSideBar(tk.Frame):
         tk.Frame.__init__(self, parent, *args, bg="#444444", **kwargs)
         self.parent = parent
         self.node = None
-        self.width = 200
+        self.width = 500
+
+        self.arrow_right_image = tk.PhotoImage(file="assets/images/icons/collaps_arrow_left_16px.png")
+        self.arrow_down_image = tk.PhotoImage(file="assets/images/icons/collaps_arrow_down_16px.png")
 
         self.enums_data = json.load(open("DATA/enums.json"))
         self.entries = []
@@ -26,31 +30,56 @@ class NodeSideBar(tk.Frame):
         self.contentFrame = tk.Frame(self, bg="#444444")
         self.contentFrame.pack(fill="both", expand=True, side="left")
 
+        #-----PREVIEW COLLAPS TITLE FRAME-----
+
         self.previewCollapsable = tk.Frame(self.contentFrame, bg="#444444")
         self.previewCollapsable.pack(fill="x", side="top", padx=5, pady=5)
 
-        self.previewItem = tk.Frame(self.previewCollapsable, bg="#444444")
-        self.previewItem.pack(fill="x")
+        self.previewCollapsArrow = tk.Label(self.previewCollapsable, image=self.arrow_down_image, bg="#444444", cursor="hand2")
+        self.previewCollapsArrow.pack(fill="x", side="left")
 
-        self.arrow_right_image = tk.PhotoImage(file="assets/images/icons/collaps_arrow_left_16px.png")
-        self.arrow_down_image = tk.PhotoImage(file="assets/images/icons/collaps_arrow_down_16px.png")
-
-        self.previewImage = tk.Label(self.previewItem, image=self.arrow_right_image, bg="#444444")
-        self.previewImage.pack(fill="x", side="left")
-
-        self.previewTitle = tk.Label(self.previewItem, text="Preview", bg="#444444", fg="#ffffff", font=("Open Sans", 12))
+        self.previewTitle = tk.Label(self.previewCollapsable, text="Preview", bg="#444444", fg="#ffffff", font=("Open Sans", 12))
         self.previewTitle.pack(fill="x", side="left")
 
-        self.img = cv2.imread('assets/images/test/skyfhd.jpg')
+        self.previewFrame = tk.Frame(self.contentFrame, bg="#777777")
+        self.previewFrame.pack(fill="x")
+
+        self.previewContentFrame = tk.Frame(self.previewFrame, bg="#444444")
+        self.previewContentFrame.pack(fill="x")
+
+        self.border = tk.Frame(self.previewFrame, bg="#444444", height=1)
+        self.border.pack(fill="x")
+
+        #-----PARAMS COLLAPS TITLE FRAME-----
+
+        self.paramsCollapsable = tk.Frame(self.contentFrame, bg="#444444")
+        self.paramsCollapsable.pack(fill="x", side="top", padx=5, pady=5)
+
+        self.paramsCollapsArrow = tk.Label(self.paramsCollapsable, image=self.arrow_down_image, bg="#444444", cursor="hand2")
+        self.paramsCollapsArrow.pack(fill="x", side="left")
+
+        self.paramsTitle = tk.Label(self.paramsCollapsable, text="Parameters", bg="#444444", fg="#ffffff", font=("Open Sans", 12))
+        self.paramsTitle.pack(fill="x", side="left")
+
+        self.paramsFrame = tk.Frame(self.contentFrame, bg="#444444")
+        self.paramsFrame.pack(fill="x")
+
+        self.paramsContentFrame = tk.Frame(self.paramsFrame, bg="#444444")
+        self.paramsContentFrame.pack(fill="x")
+
+        #---------------------------------------
+
+        self.previewCollapsArrow.bind("<ButtonPress-1>", self.toggle_preview_frame)
+        self.paramsCollapsArrow.bind("<ButtonPress-1>", self.toggle_params_frame)
+
+
+        self.img = cv2.imread('assets/images/icons/sliderIcon.png')
         self.im = Image.fromarray(self.img)
         self.imgtk = ImageTk.PhotoImage(image=self.im) 
 
-        self.preview = tk.Label(self.previewCollapsable, image=self.imgtk, bg="#999999", fg="#ffffff", font=("Open Sans", 12))
+        self.preview = tk.Label(self.previewContentFrame, image=self.imgtk, bg="#999999", fg="#ffffff", font=("Open Sans", 12))
         self.preview.pack(fill="x", side="top", padx=5, pady=5)
 
-        self.previewCollapsable.bind("<ButtonPress-1>", self.toggle_preview)
-
-        self.paramsFrame = tk.Frame(self.contentFrame, bg="#444444")
         # self.paramsFrame.pack(fill="both", expand=True, side="left")
         # self.paramsLabel = tk.Label(self.paramsFrame, text="null", bg="#444444", fg="#ffffff", font=("Open Sans", 12))
         # self.paramsLabel.pack(fill="x", side="left")
@@ -61,9 +90,25 @@ class NodeSideBar(tk.Frame):
 
         self.playIcon.bind("<ButtonPress-1>", self.run_nodes)
 
-        self.bind("<Configure>", self.update_sidebar)
+        #self.bind("<Configure>", self.update_sidebar)
 
-        
+    def toggle_params_frame(self, event):
+        if not self.paramsContentFrame.winfo_ismapped():
+            self.paramsCollapsArrow.config(image=self.arrow_down_image)
+            self.paramsContentFrame.pack(fill="x")
+        else:
+            self.paramsCollapsArrow.config(image=self.arrow_right_image)
+            self.paramsContentFrame.pack_forget()
+
+
+    def toggle_preview_frame(self, event):
+        if not self.previewContentFrame.winfo_ismapped():
+            self.previewCollapsArrow.config(image=self.arrow_down_image)
+            self.previewContentFrame.pack(fill="x")
+        else:
+            self.previewCollapsArrow.config(image=self.arrow_right_image)
+            self.previewContentFrame.pack_forget()
+
 
 
     def dragHandleHover(self, event):
@@ -112,48 +157,57 @@ class NodeSideBar(tk.Frame):
     
     def update_sidebar_content(self, event):
         self.entries.clear()
-        self.img = self.node.run()
+        #self.img = self.node.run()
 
         # clear actual content
-        for w in self.paramsFrame.winfo_children():
+        for w in self.paramsContentFrame.winfo_children():
             w.destroy()
 
         # add new params
-        for i, input in enumerate(self.node.cvFunctionArgs):
-            txt = input["name"]
-            txt_label = tk.Label(self.paramsFrame, text=txt, bg="#444444", fg="#ffffff", font=("Open Sans", 12))
-            txt_label.pack()
-            is_enum = False
+        for input in self.node.cvFunctionArgs:
+            if input["type"] == "filepicker":
+                self.entries.append(FilePickerField(self.paramsContentFrame, data=input))
+            if input["type"] == "imreadModes":
+                self.entries.append(ComboboxField(self.paramsContentFrame, data=input, params=self.enums_data["imreadModes"]))
+            if input["type"] == "Size":
+                self.entries.append(SizeField(self.paramsContentFrame, name=input["name"]))
+            if input["type"] == "borderType":
+                self.entries.append(ComboboxField(self.paramsContentFrame, name=input["name"], params=self.enums_data["borderType"]))
 
-            self.entries.append(tk.StringVar(self, name=input["name"]))
-            if input["value"] is not None:
-                self.setvar(name=input["name"], value=input["value"])
-            # if input["type"] == "enum":
-            for enum in self.enums_data["enums"]:
-                if input["type"] == enum["name"]:
-                    # self.entries.append(tk.StringVar())
-                    # self.entries[i].set(input["value"])
-                    menu = tk.ttk.Combobox(self.paramsFrame, textvariable=self.entries[i])
-                    # menu["values"] = self.enums_data["enums"]["values"]
-                    values_list = []
-                    for val in enum["values"]:
-                        values_list.append(val)
-                    menu["values"] = tuple(values_list)
-                    # print(menu["values"])
-                    menu["state"] = 'readonly'
-                    menu.pack()
-                    menu.bind("<<ComboboxSelected>>", lambda e: self.set_combo_value(e, input, i))
-                    is_enum = True
-            if not is_enum:
-                # self.entries.append(tk.StringVar())
-                entry = tk.Entry(self.paramsFrame, textvariable=self.entries[i])
-                btn = tk.Button(self.paramsFrame, text='OK', command = lambda: self.set_button_value(input, i))
-                entry.pack()
-                btn.pack()
+            # txt = input["name"]
+            # txt_label = tk.Label(self.paramsFrame, text=txt, bg="#444444", fg="#ffffff", font=("Open Sans", 12))
+            # txt_label.pack()
+            # is_enum = False
+
+            # self.entries.append(tk.StringVar(self, name=input["name"]))
+            # if input["value"] is not None:
+            #     self.setvar(name=input["name"], value=input["value"])
+            # # if input["type"] == "enum":
+            # for enum in self.enums_data["enums"]:
+            #     if input["type"] == enum["name"]:
+            #         # self.entries.append(tk.StringVar())
+            #         # self.entries[i].set(input["value"])
+            #         menu = tk.ttk.Combobox(self.paramsFrame, textvariable=self.entries[i])
+            #         # menu["values"] = self.enums_data["enums"]["values"]
+            #         values_list = []
+            #         for val in enum["values"]:
+            #             values_list.append(val)
+            #         menu["values"] = tuple(values_list)
+            #         # print(menu["values"])
+            #         menu["state"] = 'readonly'
+            #         menu.pack()
+            #         menu.bind("<<ComboboxSelected>>", lambda e: self.set_combo_value(e, input, i))
+            #         is_enum = True
+            # if not is_enum:
+            #     # self.entries.append(tk.StringVar())
+            #     entry = tk.Entry(self.paramsFrame, textvariable=self.entries[i])
+            #     btn = tk.Button(self.paramsFrame, text='OK', command = lambda: self.set_button_value(input, i))
+            #     entry.pack()
+            #     btn.pack()
             
 
         
-        self.paramsFrame.pack()
+        self.paramsFrame.pack(fill="x")
         for input in self.node.cvFunctionArgs:
             print(input["value"]) 
 
@@ -192,4 +246,9 @@ class NodeSideBar(tk.Frame):
         print(self.node.values[id])
         self.node.kwvalues[input["name"]] = getattr(cv2, input["value"])
         print(self.node.kwvalues[input["name"]])
+
+
+class SidebarParamFilePicker(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        tk.Frame.__init__(self, parent, *args, bg="#444444", **kwargs)    
         

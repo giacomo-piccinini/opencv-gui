@@ -17,6 +17,7 @@ class NodeGraph(tk.Frame):
         # spawn imread node
         self.node = CVNode(self, self.canvas, 'imread')
         self.selectedNode = None
+        self.node.cvFunctionArgs[0]["value"] = "/home/mattia/opencv-gui/assets/images/test/skyfhd.jpg"
 
         self.e1 = self.canvas.create_window(200, 200, window=self.node, anchor="n")
         self.canvas.itemconfig(self.e1,width=200,height=200)
@@ -38,11 +39,6 @@ class NodeGraph(tk.Frame):
 
         self.node.title.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, self.node, self.e1))
         self.node2.title.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, self.node2, self.e2))
-
-        # simulate connection from imshow to blur
-        # self.node2.values = [None, (5,5)]
-        # self.node2.values.append(self.node.run().copy())
-        # self.node2.values.append((5,5))
 
         self.nodes.append(self.node2)
        

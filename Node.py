@@ -27,6 +27,7 @@ class CVNode(Node):
         Node.__init__(self, graph, parent, *args, **kwargs)
 
         self.data = json.load(open("DATA/cv2.json"))
+        self.enums = json.load(open("DATA/enums.json"))
         
         self.execname = execname
         #self.var1 = 'assets/images/icons/IOGreen-16px.png'
@@ -87,29 +88,37 @@ class CVNode(Node):
             input['node_gui'] = NodeInput(self.body, self, input["name"])
 
     def run(self):
-        print("Values: {}".format(self.values))
+        print("Running node {}".format(self.execname))
+        # print("Values: {}".format(self.values))
         func = getattr(cv2, self.funcdata["name"])
-        for i in range(len(self.values)):
-            self.kwvalues[self.cvFunctionArgs[i]["name"]] = self.values[i]
-        # print("Kwvalues: {}".format(self.kwvalues))
+        for i in range(len(self.cvFunctionArgs)):
+            if self.cvFunctionArgs[i]["type"] in self.enums:
+                self.kwvalues[self.cvFunctionArgs[i]["name"]] = getattr(cv2, self.cvFunctionArgs[i]["value"])
+            else:
+                self.kwvalues[self.cvFunctionArgs[i]["name"]] = self.cvFunctionArgs[i]["value"]
+        print("Kwvalues: {}".format(self.kwvalues))
+        for key, val in self.kwvalues.items():
+            print("Key: {}, Value: {}".format(key, val))
         res = func(**self.kwvalues)
+        print("Result: {}".format(res))
         self.last_result = res
         return res
     
     def run_chain(self):
-        print("Running node {}".format(self.execname))
         result = self.run()
         print("Result type: {}".format(type(result)))
-        for outputElem in self.outputElements:
-            if outputElem.connection.outputNode is not None:
-                outputElem.connection.send_result(result)
-                outputElem.connection.outputNode.run_chain()
+        for outputElem in self.cvFunctionOutput:
+            if outputElem["node_gui"].connection.outputNode is not None:
+                outputElem["node_gui"].connection.send_result(outputElem["name"], result)
+                outputElem["node_gui"].connection.outputNode.run_chain()
                 
         # output.conenssione.nodeoconnesso.run_chain()
 
-    def set_value(self, idx, value):
-        self.values[idx] = value
-
+    def set_value(self, name, value):
+        for input in self.cvFunctionArgs:
+            if input["name"] == name:
+                input["value"] = value
+                break
 
 class IOElement(tk.Frame):
     def __init__(self, parent, node, name, *args, **kwargs):
@@ -168,21 +177,21 @@ class NodeInput(IOElement):
 
     def close_connection(self, e):
         for node in self.node.graph.nodes:
+            print("Node: {}".format(node.execname))
             if node.execname == self.node.execname:
                 continue
-            for output in node.outputElements:
-                if output.waiting_connection:
+            for output in node.cvFunctionOutput:
+                if output["node_gui"].waiting_connection:
                     self.connection.inputNode = node
                     self.connection.outputNode = self.node
-                    output.waiting_connection = False
-                    output.is_connected = True
+                    output["node_gui"].waiting_connection = False
+                    output["node_gui"].is_connected = True
                     self.is_connected = True
-                    self.connection.set_ids(self.index, output.index)
-                    output.connection = self.connection
+                    output["node_gui"].connection = self.connection
 
         print("Input node: {}".format(self.connection.inputNode.execname))
         print("Output node: {}".format(self.connection.outputNode.execname))
-        print("Output values: {}".format(self.connection.outputNode.values))
+        print("Output values: {}".format(self.connection.outputNode.kwvalues))
                     
 
 
@@ -256,11 +265,11 @@ class Connection:
         self.id_in = id_in
         self.id_out = id_out
 
-    def send_result(self, res):
+    def send_result(self, name, result):
         # print(self.outputNode.cvFunctionArgs[self.outputNode.inputElements.index(self)]["index"])
-        self.outputNode.set_value(self.id_out, res)
-        self.outputNode.set_value(1, (5,5))
-        self.outputNode.set_value(2, (2,2))
+        self.outputNode.set_value(name, result)
+        # self.outputNode.set_value(1, (5,5))
+        # self.outputNode.set_value(2, (2,2))
 
     
 

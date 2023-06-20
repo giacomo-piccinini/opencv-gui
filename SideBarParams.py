@@ -133,7 +133,7 @@ class IntField(GenericField):
     def __init__(self, parent, *args, **kwargs):
         GenericField.__init__(self, parent, *args, **kwargs)
 
-        self.iconFolder = tk.PhotoImage(file="assets/images/icons/slidericon.png")
+        self.iconFolder = tk.PhotoImage(file="assets/images/icons/sliderIcon.png")
 
         self.intVal = DataField(self.dataFrame)
 
@@ -167,7 +167,7 @@ class SizeField(GenericField):
 
         self.name = name
 
-        self.dataIcon = tk.PhotoImage(file="assets/images/icons/slidericon.png")
+        self.dataIcon = tk.PhotoImage(file="assets/images/icons/sliderIcon.png")
 
         self.widthField = DataField(self.dataFrame, helper="width")
         self.heightField = DataField(self.dataFrame, helper="height")

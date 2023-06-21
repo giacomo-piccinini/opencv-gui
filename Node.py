@@ -59,11 +59,13 @@ class CVNode(Node):
                 "type": arg["type"],
                 "value": arg["default"] if "default" in arg else None
             }
+            
+            # convert value (string) to tuple
+            if dd["type"] == "Point":
+                dd["value"] = tuple(map(int, dd["value"].split(",")))
+
             self.cvFunctionArgs.append(dd)
-            # if dd["type"] == "enum":
-            #     self.values.append(getattr(cv2, dd["value"]))
-            # else:
-            #     self.values.append(dd["value"])
+
         for ret in self.funcdata["return"]:
             dd = {
                 "name": ret["name"],
@@ -71,13 +73,6 @@ class CVNode(Node):
             }
             self.cvFunctionOutput.append(dd)
 
-        # for i in range(len(self.values), len(self.cvFunctionArgs)):
-        #     val = self.cvFunctionArgs[i]["value"]
-        #     # self.values.append(getattr(cv2, val))
-        #     if self.cvFunctionArgs[i]["type"] == "borderType" or self.cvFunctionArgs[i]["type"] == "imreadModes":
-        #         self.values.append(getattr(cv2, val))
-        #     else:
-        #         self.values.append(val)
             
     def init_gui(self):
         self.title.config(text=self.execname)
@@ -97,10 +92,8 @@ class CVNode(Node):
             else:
                 self.kwvalues[self.cvFunctionArgs[i]["name"]] = self.cvFunctionArgs[i]["value"]
         print("Kwvalues: {}".format(self.kwvalues))
-        for key, val in self.kwvalues.items():
-            print("Key: {}, Value: {}".format(key, val))
         res = func(**self.kwvalues)
-        print("Result: {}".format(res))
+        # print("Result: {}".format(res))
         self.last_result = res
         return res
     

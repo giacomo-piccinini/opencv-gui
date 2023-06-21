@@ -41,7 +41,7 @@
                     "name": "anchor",
                     "type": "Point",
                     "required" : false,
-                    "default": "(-1,-1)"
+                    "default": "-1,-1"
                 },
                 {
                     "name": "borderType",

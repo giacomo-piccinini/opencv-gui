@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 import pyglet
 
 
@@ -119,6 +120,7 @@ class FilePickerField(GenericField):
         self.label.config(text=data['name'])
 
         self.filepick.field.bind("<Return>", self.return_pressed_in_field)
+        self.filepick.icon.bind("<Button-1>", self.open_file_picker)
     
     def return_pressed_in_field(self, event):
         self.data['value'] = self.filepick.field.get()
@@ -127,6 +129,10 @@ class FilePickerField(GenericField):
     def set_data(self, data):
         self.filepick.field.delete(0, 'end')
         self.filepick.field.insert(0, data)
+
+    def open_file_picker(self, event):
+        self.data['value'] = filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("all files","*.*"),("jpeg files","*.jpg")))
+        self.set_data(self.data['value'])
 
 
 class IntField(GenericField):
@@ -162,10 +168,11 @@ class ComboboxField(GenericField):
 
 
 class SizeField(GenericField):
-    def __init__(self, parent, name, *args, **kwargs):
+    def __init__(self, parent, data, *args, **kwargs):
         GenericField.__init__(self, parent, *args,**kwargs)
 
-        self.name = name
+        self.name = data["name"]
+        self.data = data
 
         self.dataIcon = tk.PhotoImage(file="assets/images/icons/sliderIcon.png")
 
@@ -177,11 +184,21 @@ class SizeField(GenericField):
 
         self.label.config(text=self.name)
 
+        if data["value"]:
+            self.width = data["value"][0]
+            self.height = data["value"][1]
+            self.widthField.field.insert(0, self.width)
+            self.heightField.field.insert(0, self.height)
+        else:
+            self.width = None
+            self.height = None
+
         self.widthField.field.config(validate='focusout',validatecommand=self.invalid_command)
         self.heightField.field.config(validate='focusout',validatecommand=self.invalid_command)
 
-        self.widthField.field.bind("<FocusOut>", self.update_size)
-        self.widthField.field.bind("<Return>", self.return_pressed_in_field)
+        self.widthField.field.bind("<Return>", self.update_width)
+        self.heightField.field.bind("<Return>", self.update_height)
+        # self.widthField.field.bind("<Return>", self.return_pressed_in_field)
     
     def return_pressed_in_field(self, event):
         print("return pressed")
@@ -190,9 +207,26 @@ class SizeField(GenericField):
     def invalid_command(self):
         print("invalid command")
     
-    def update_size(self, event):
-        print("update size")
+    def update_width(self, event):
+        print("update width")
+        val = self.widthField.field.get()
+        self.width = int(val)
         self.label.focus_set()
+        if self.height:
+            self.set_size()
+
+    def update_height(self, event):
+        print("update height")
+        val = self.heightField.field.get()
+        self.height = int(val)
+        self.label.focus_set()
+        if self.width:
+            self.set_size()
+
+    def set_size(self):
+        print("set size")
+        sz = [self.width, self.height]
+        self.data["value"] = tuple(sz)
 
 
 if __name__ == "__main__":

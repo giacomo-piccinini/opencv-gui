@@ -170,9 +170,9 @@ class NodeSideBar(tk.Frame):
             if input["type"] == "imreadModes":
                 self.entries.append(ComboboxField(self.paramsContentFrame, data=input, params=self.enums_data["imreadModes"]))
             if input["type"] == "Size":
-                self.entries.append(SizeField(self.paramsContentFrame, name=input["name"]))
+                self.entries.append(SizeField(self.paramsContentFrame, data=input))
             if input["type"] == "Point":
-                self.entries.append(SizeField(self.paramsContentFrame, name=input["name"]))
+                self.entries.append(SizeField(self.paramsContentFrame, data=input))
             if input["type"] == "borderType":
                 self.entries.append(ComboboxField(self.paramsContentFrame, data=input, name=input["name"], params=self.enums_data["borderType"]))
 

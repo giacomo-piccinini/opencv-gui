@@ -23,10 +23,6 @@ class NodeGraph(tk.Frame):
 
         self.canvas.bind("<ButtonPress-1>", self.canvas_button_left)
 
-
-
-        #self.add_node("imread")
-        #self.add_node("blur")
     def init_drawer(self):
         self.drawerBar = DrawerBar(self)        
         # for fun in self.drawerBar.elements:
@@ -49,12 +45,10 @@ class NodeGraph(tk.Frame):
         node.title.bind("<Leave>", lambda e: node.title.configure(fg="white"))       
         
         self.nodes.append(node)
-
-        for n in self.nodes:
-            print(n.execname)
         
 
     def canvas_button_left(self, event):
+        self.selectedNode.hightlight(False)
         self.selectedNode = None
         self.nodeSidebar.place_forget()
         
@@ -65,9 +59,18 @@ class NodeGraph(tk.Frame):
             for output in node.outputElements:
                 output.waiting_connection = False
     
+    def set_highlights(self):
+        for node in self.nodes:
+            node.hightlight(False)
+        self.selectedNode.hightlight(True)
+    
     def select_node(self, click_event, node: Node, node_canvas_id):
+
+        self.selectedNode = node
+        self.set_highlights()
         self.nodeSidebar.re_place()
-        self.nodeSidebar.set_node(node)        
+        self.nodeSidebar.set_node(node)
+    
 
     def move_node_mouse(self, click_event, node: Node, node_canvas_id):
         node.titleFrame.bind("<B1-Motion>", lambda event: self.move_node(event, click_event, node, node_canvas_id))

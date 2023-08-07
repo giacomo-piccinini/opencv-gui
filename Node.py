@@ -8,13 +8,16 @@ TITLE_BG_COLOR = "#333333"
 TITLE_FONT = ("Open Sans", 12)
 TITLE_FG_COLOR = "#FFFFFF"
 BODY_COLOR = "#444444"
+HIGHLIGHT_OFF_NODE_COLOR ="#111111" 
+HIGHLIGHT_ON_NODE_COLOR = "#00FFFF"
+HIGHLIGHT_THICKNESS = 1
 #endregion
 
 
 class Node(tk.Frame):
     def __init__(self, graph, parent, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.config(bg=BODY_COLOR)
+        self.config(bg=BODY_COLOR, highlightcolor=HIGHLIGHT_OFF_NODE_COLOR, highlightbackground=HIGHLIGHT_OFF_NODE_COLOR, highlightthickness=HIGHLIGHT_THICKNESS)
         self.parent = parent
         self.graph = graph
 
@@ -26,6 +29,12 @@ class Node(tk.Frame):
 
         self.body = tk.Frame(self, bg=BODY_COLOR)
         self.body.pack(fill="both", expand=True)
+    
+    def hightlight(self, state):
+        if state:
+            self.config(highlightcolor=HIGHLIGHT_ON_NODE_COLOR, highlightbackground=HIGHLIGHT_ON_NODE_COLOR)
+        else:
+            self.config(highlightcolor=HIGHLIGHT_OFF_NODE_COLOR, highlightbackground=HIGHLIGHT_OFF_NODE_COLOR)
 
 class CVNode(Node):
     def __init__(self, graph, parent, execname, *args, **kwargs):

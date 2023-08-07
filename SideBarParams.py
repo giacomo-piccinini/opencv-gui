@@ -166,6 +166,28 @@ class ComboboxField(GenericField):
         self.data['value'] = self.intVal.val.get()
 
 
+class DepthField(GenericField):
+    def __init__(self, parent, data, *args, **kwargs):    
+        GenericField.__init__(self, parent, *args,**kwargs)
+        self.name = data["name"]
+        self.data = data
+        # self.dataIcon = tk.PhotoImage(file="assets/images/icons/sliderIcon.png")
+        self.depthField = DataField(self.dataFrame, helper="depth")
+        # self.depthField.icon.config(image=self.dataIcon)
+        self.label.config(text=self.name)
+        if data["value"]:
+            self.depth = data["value"]
+            self.depthField.field.insert(0, self.depth)
+        else:
+            self.depth = None
+
+        self.depthField.field.bind("<Return>", self.update_depth)
+    
+    def update_depth(self, e):
+        self.data["value"] = int(self.depthField.field.get())
+        print("Depth set: {}".format(self.data["value"]))
+        
+
 
 class SizeField(GenericField):
     def __init__(self, parent, data, *args, **kwargs):

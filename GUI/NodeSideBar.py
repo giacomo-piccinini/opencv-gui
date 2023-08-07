@@ -159,6 +159,17 @@ class NodeSideBar(tk.Frame):
         self.entries.clear()
         #self.img = self.node.run()
 
+        # update preview
+        self.img = self.node.last_result
+        if self.img is not None:
+            b,g,r = cv2.split(self.img)
+            ruimg = cv2.merge((r,g,b))
+            im = Image.fromarray(ruimg)
+            self.imgtk = ImageTk.PhotoImage(image=im)
+            self.preview.config(image=self.imgtk)
+        else:
+            self.preview.config(image='')
+
         # clear actual content
         for w in self.paramsContentFrame.winfo_children():
             w.destroy()
@@ -175,37 +186,6 @@ class NodeSideBar(tk.Frame):
                 self.entries.append(SizeField(self.paramsContentFrame, data=input))
             if input["type"] == "borderType":
                 self.entries.append(ComboboxField(self.paramsContentFrame, data=input, name=input["name"], params=self.enums_data["borderType"]))
-
-            # txt = input["name"]
-            # txt_label = tk.Label(self.paramsFrame, text=txt, bg="#444444", fg="#ffffff", font=("Open Sans", 12))
-            # txt_label.pack()
-            # is_enum = False
-
-            # self.entries.append(tk.StringVar(self, name=input["name"]))
-            # if input["value"] is not None:
-            #     self.setvar(name=input["name"], value=input["value"])
-            # # if input["type"] == "enum":
-            # for enum in self.enums_data["enums"]:
-            #     if input["type"] == enum["name"]:
-            #         # self.entries.append(tk.StringVar())
-            #         # self.entries[i].set(input["value"])
-            #         menu = tk.ttk.Combobox(self.paramsFrame, textvariable=self.entries[i])
-            #         # menu["values"] = self.enums_data["enums"]["values"]
-            #         values_list = []
-            #         for val in enum["values"]:
-            #             values_list.append(val)
-            #         menu["values"] = tuple(values_list)
-            #         # print(menu["values"])
-            #         menu["state"] = 'readonly'
-            #         menu.pack()
-            #         menu.bind("<<ComboboxSelected>>", lambda e: self.set_combo_value(e, input, i))
-            #         is_enum = True
-            # if not is_enum:
-            #     # self.entries.append(tk.StringVar())
-            #     entry = tk.Entry(self.paramsFrame, textvariable=self.entries[i])
-            #     btn = tk.Button(self.paramsFrame, text='OK', command = lambda: self.set_button_value(input, i))
-            #     entry.pack()
-            #     btn.pack()
             
 
         

@@ -226,7 +226,9 @@ class NodeSideBar(tk.Frame):
         #     for output in node.outputElements:
         #         output.connection.outputNode.values[i] = result.copy()
 
-        self.parent.nodes[0].run_chain()
+        #self.parent.nodes[0].run_chain()
+        self.img = self.node.run()
+        self.update_sidebar(None)
 
     
     def set_combo_value(self, event, input, id):

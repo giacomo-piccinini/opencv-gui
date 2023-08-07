@@ -90,7 +90,7 @@ class NodeSideBar(tk.Frame):
 
         self.playIcon.bind("<ButtonPress-1>", self.run_nodes)
 
-        #self.bind("<Configure>", self.update_sidebar)
+        self.bind("<Configure>", self.update_sidebar)
 
     def toggle_params_frame(self, event):
         if not self.paramsContentFrame.winfo_ismapped():
@@ -160,9 +160,17 @@ class NodeSideBar(tk.Frame):
         #self.img = self.node.run()
 
         # update preview
+        maxw = self.preview.winfo_width()
+        maxh = self.preview.winfo_height()
+
         self.img = self.node.last_result
         if self.img is not None:
-            b,g,r = cv2.split(self.img)
+            w = self.img.shape[1]
+            h = self.img.shape[0]
+            rimg = []
+            #if w > h:
+            rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
+            b,g,r = cv2.split(rimg)
             ruimg = cv2.merge((r,g,b))
             im = Image.fromarray(ruimg)
             self.imgtk = ImageTk.PhotoImage(image=im)

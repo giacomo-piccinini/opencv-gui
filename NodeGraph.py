@@ -29,10 +29,10 @@ class NodeGraph(tk.Frame):
         #self.add_node("blur")
     def init_drawer(self):
         self.drawerBar = DrawerBar(self)        
-        for loadedFunction in self.drawerBar.loadedFunctions:
-            fun.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
-            fun.label.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
-            print('binded ' + fun.name)       
+        # for fun in self.drawerBar.elements:
+            # fun.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
+            # fun.label.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
+            # print('binded ' + fun.name)       
             
             
     def add_node(self, ev, nodeName):
@@ -49,6 +49,9 @@ class NodeGraph(tk.Frame):
         node.title.bind("<Leave>", lambda e: node.title.configure(fg="white"))       
         
         self.nodes.append(node)
+
+        for n in self.nodes:
+            print(n.execname)
         
 
     def canvas_button_left(self, event):
@@ -86,7 +89,7 @@ class DrawerBar(tk.Frame):
         self.pack(fill=tk.Y, side="left")
         self.parent = parent
         
-        self.loadedFunctions = []
+        self.elements = []
         
         self.label = tk.Label(self, text="Drawer", bg="#777777", fg="white")
         self.label.pack(side="top", fill="x")
@@ -94,7 +97,7 @@ class DrawerBar(tk.Frame):
         self.functions = json.load(open("DATA/cv2.json"))
         
         for function in self.functions['functions']:
-            self.loadedFunctions.append(DrawerElement(self, function['name']))
+            self.elements.append(DrawerElement(self, function['name']))
 
 class DrawerElement(tk.Frame):
     def __init__(self, parent, name, *args, **kwargs):
@@ -102,14 +105,16 @@ class DrawerElement(tk.Frame):
         
         self.config(bg="#777777")
         self.pack(fill=tk.X)
+
+        self.parent = parent
         
         self.name = name
         
         self.label = tk.Label(self, text=name, bg="#777777", fg="white")
         self.label.pack(side="left", fill="x")
         
-    #     self.bind("<ButtonPress-1>", self.add_node)
-    #     self.label.bind("<ButtonPress-1>", self.add_node)
+        self.bind("<ButtonPress-1>", self.add_node)
+        self.label.bind("<ButtonPress-1>", self.add_node)
 
-    # def add_node(self, e):
-    #     pass
+    def add_node(self, e):
+        self.parent.parent.add_node(e, self.name)

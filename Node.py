@@ -3,8 +3,13 @@ import logging
 import json
 import cv2
 
-TITLE_COLOR = "#333333"
+#region <Global VARS>
+TITLE_BG_COLOR = "#333333"
+TITLE_FONT = ("Open Sans", 12)
+TITLE_FG_COLOR = "#FFFFFF"
 BODY_COLOR = "#444444"
+#endregion
+
 
 class Node(tk.Frame):
     def __init__(self, graph, parent, *args, **kwargs):
@@ -13,10 +18,10 @@ class Node(tk.Frame):
         self.parent = parent
         self.graph = graph
 
-        self.titleFrame = tk.Frame(self, bg=TITLE_COLOR)
+        self.titleFrame = tk.Frame(self, bg=TITLE_BG_COLOR)
         self.titleFrame.pack(fill="x", side="top")
 
-        self.title = tk.Label(self.titleFrame, text="Null", bg=TITLE_COLOR, fg="#ffffff", font=("Open Sans", 12), anchor="w")
+        self.title = tk.Label(self.titleFrame, text="Null", bg=TITLE_BG_COLOR, fg=TITLE_FG_COLOR, font=TITLE_FONT, anchor="w", cursor="hand2")
         self.title.pack(fill="x", side="left", padx=5, pady=5)
 
         self.body = tk.Frame(self, bg=BODY_COLOR)
@@ -25,7 +30,7 @@ class Node(tk.Frame):
 class CVNode(Node):
     def __init__(self, graph, parent, execname, *args, **kwargs):
         Node.__init__(self, graph, parent, *args, **kwargs)
-
+                      
         self.data = json.load(open("DATA/cv2.json"))
         self.enums = json.load(open("DATA/enums.json"))
         

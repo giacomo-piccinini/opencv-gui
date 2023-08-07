@@ -142,18 +142,15 @@ class NodeSideBar(tk.Frame):
         if self.img is not None:
             w = self.img.shape[1]
             h = self.img.shape[0]
-
-            # print("maxw: " + str(maxw) + " maxh: " + str(maxh) + " w: " + str(w) + " h: " + str(h))
-
             rimg = []
-            #if w > h:
             rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
-            #else:
-            #    rimg = cv2.resize(self.img, (int(maxh*w/h), maxh))
+            if len(self.img.shape) < 3:
+                self.im = Image.fromarray(rimg)
+            else:
+                b,g,r = cv2.split(rimg)
+                ruimg = cv2.merge((r,g,b))
+                self.im = Image.fromarray(ruimg)
 
-            b,g,r = cv2.split(rimg)
-            ruimg = cv2.merge((r,g,b))
-            self.im = Image.fromarray(ruimg)
             self.imgtk = ImageTk.PhotoImage(image=self.im)
             self.preview.config(image=self.imgtk)
         else:
@@ -172,11 +169,14 @@ class NodeSideBar(tk.Frame):
             w = self.img.shape[1]
             h = self.img.shape[0]
             rimg = []
-            #if w > h:
             rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
-            b,g,r = cv2.split(rimg)
-            ruimg = cv2.merge((r,g,b))
-            im = Image.fromarray(ruimg)
+            
+            if (len(self.img.shape) < 3):
+                self.im = Image.fromarray(rimg)
+            else:
+                b,g,r = cv2.split(rimg)
+                ruimg = cv2.merge((r,g,b))
+                im = Image.fromarray(ruimg)
             self.imgtk = ImageTk.PhotoImage(image=im)
             self.preview.config(image=self.imgtk)
         else:

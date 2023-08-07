@@ -1,11 +1,15 @@
 import tkinter as tk
 from Node import Node, CVNode
+import json
 from GUI.NodeSideBar import NodeSideBar
 
 class NodeGraph(tk.Frame):
     def __init__(self, parent, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.pack(fill="both", expand=True)
+        
+        self.init_drawer()
+
 
         self.canvas = tk.Canvas(self, bg="#222222")
         self.canvas.pack(fill="both", expand=True)
@@ -14,42 +18,38 @@ class NodeGraph(tk.Frame):
 
         self.nodes = []
 
-        # spawn imread node
-        self.node = CVNode(self, self.canvas, 'imread')
-        self.selectedNode = None
-        self.node.cvFunctionArgs[0]["value"] = "/home/mattia/opencv-gui/assets/images/test/skyfhd.jpg"
-
-        self.e1 = self.canvas.create_window(200, 200, window=self.node, anchor="n")
-        self.canvas.itemconfig(self.e1,width=200,height=200)
-
-        self.nodes.append(self.node)
-
-        # spawn blur node
-        self.node2 = CVNode(self, self.canvas, 'blur')
-        self.selectedNode = None
-
-        self.e2 = self.canvas.create_window(600, 300, window=self.node2, anchor="n")
-        self.canvas.itemconfig(self.e2,width=200,height=200)
-
-
         self.nodeSidebar = NodeSideBar(self)
         self.nodeSidebar.tkraise()
 
         self.canvas.bind("<ButtonPress-1>", self.canvas_button_left)
 
-        self.node.title.bind("<ButtonPress-1>", lambda e: self.select_node(e, self.node, self.e1))
-        self.node.titleFrame.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, self.node, self.e1))
-        self.node.title.bind("<Enter>", lambda e: self.node.title.configure(fg="#2196F3"))
-        self.node.title.bind("<Leave>", lambda e: self.node.title.configure(fg="white"))       
+
+
+        #self.add_node("imread")
+        #self.add_node("blur")
+    def init_drawer(self):
+        self.drawerBar = DrawerBar(self)        
+        for loadedFunction in self.drawerBar.loadedFunctions:
+            fun.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
+            fun.label.bind("<ButtonPress-1>", lambda e: self.add_node(e, str(fun.name)))
+            print('binded ' + fun.name)       
+            
+            
+    def add_node(self, ev, nodeName):
+        print("Adding node: {}".format(nodeName))
+        node = CVNode(self, self.canvas, nodeName)
+        self.selectedNode = None
+        #self.node.cvFunctionArgs[0]["value"] = "/home/mattia/opencv-gui/assets/images/test/skyfhd.jpg"
+        canvasFrame = self.canvas.create_window(200, 200, window=node, anchor="n")
+        self.canvas.itemconfig(canvasFrame,width=200,height=200)
         
-        self.node2.title.bind("<Enter>", lambda e: self.node2.title.configure(fg="2196F3"))
-        self.node2.title.bind("<Leave>", lambda e: self.node2.title.configure(fg="white"))
-        self.node2.title.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, self.node2, self.e2))
-        self.node2.titleFrame.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, self.node2, self.e2))
-
-        self.nodes.append(self.node2)
-       
-
+        node.title.bind("<ButtonPress-1>", lambda e: self.select_node(e, node, canvasFrame))
+        node.titleFrame.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, node, canvasFrame))
+        node.title.bind("<Enter>", lambda e: node.title.configure(fg="#2196F3"))
+        node.title.bind("<Leave>", lambda e: node.title.configure(fg="white"))       
+        
+        self.nodes.append(node)
+        
 
     def canvas_button_left(self, event):
         self.selectedNode = None
@@ -77,3 +77,39 @@ class NodeGraph(tk.Frame):
     # def create_connection(self):
     #     for node in self.parent.parent.nodes:
     #         print(node)
+    
+
+class DrawerBar(tk.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.config(bg="#777777")
+        self.pack(fill=tk.Y, side="left")
+        self.parent = parent
+        
+        self.loadedFunctions = []
+        
+        self.label = tk.Label(self, text="Drawer", bg="#777777", fg="white")
+        self.label.pack(side="top", fill="x")
+        
+        self.functions = json.load(open("DATA/cv2.json"))
+        
+        for function in self.functions['functions']:
+            self.loadedFunctions.append(DrawerElement(self, function['name']))
+
+class DrawerElement(tk.Frame):
+    def __init__(self, parent, name, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        
+        self.config(bg="#777777")
+        self.pack(fill=tk.X)
+        
+        self.name = name
+        
+        self.label = tk.Label(self, text=name, bg="#777777", fg="white")
+        self.label.pack(side="left", fill="x")
+        
+    #     self.bind("<ButtonPress-1>", self.add_node)
+    #     self.label.bind("<ButtonPress-1>", self.add_node)
+
+    # def add_node(self, e):
+    #     pass

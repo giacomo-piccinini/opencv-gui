@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+import os
 
 from NodeGraph import NodeGraph
 
@@ -15,9 +16,9 @@ class MainApplication(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
     MainApplication(root).pack(side="top", fill="both", expand=True)
-    #root.geometry("800x600")
-    root.state('zoomed')
-
-    # ubuntu
-    #root.attributes('-zoomed', True)
+    if os.name == 'nt':
+        root.state('zoomed')
+    else:
+        root.attributes('-zoomed', True)
+        
     root.mainloop()

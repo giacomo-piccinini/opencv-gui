@@ -15,11 +15,11 @@ HIGHLIGHT_THICKNESS = 1
 
 
 class Node(tk.Frame):
-    def __init__(self, graph, parent, *args, **kwargs):
-        tk.Frame.__init__(self, parent, *args, **kwargs)
-        self.config(bg=BODY_COLOR, highlightcolor=HIGHLIGHT_OFF_NODE_COLOR, highlightbackground=HIGHLIGHT_OFF_NODE_COLOR, highlightthickness=HIGHLIGHT_THICKNESS)
-        self.parent = parent
+    def __init__(self, graph, *args, **kwargs):
         self.graph = graph
+        self.canvas = graph.canvas
+        tk.Frame.__init__(self, self.canvas, *args, **kwargs)
+        self.config(bg=BODY_COLOR, highlightcolor=HIGHLIGHT_OFF_NODE_COLOR, highlightbackground=HIGHLIGHT_OFF_NODE_COLOR, highlightthickness=HIGHLIGHT_THICKNESS)
 
         self.titleFrame = tk.Frame(self, bg=TITLE_BG_COLOR)
         self.titleFrame.pack(fill="x", side="top")
@@ -37,8 +37,8 @@ class Node(tk.Frame):
             self.config(highlightcolor=HIGHLIGHT_OFF_NODE_COLOR, highlightbackground=HIGHLIGHT_OFF_NODE_COLOR)
 
 class CVNode(Node):
-    def __init__(self, graph, parent, execname, *args, **kwargs):
-        Node.__init__(self, graph, parent, *args, **kwargs)
+    def __init__(self, graph, execname, *args, **kwargs):
+        Node.__init__(self, graph, *args, **kwargs)
                       
         self.data = json.load(open("DATA/cv2.json"))
         self.enums = json.load(open("DATA/enums.json"))
@@ -92,9 +92,9 @@ class CVNode(Node):
         self.title.config(text=self.execname)
 
         for output in self.cvFunctionOutput:
-            output['node_gui'] = NodeOutput(self.body, self, output["name"])
+            output['node_gui'] = NodeOutput(self.body, self, output)
         for input in self.cvFunctionArgs:
-            input['node_gui'] = NodeInput(self.body, self, input["name"])
+            input['node_gui'] = NodeInput(self.body, self, input)
 
     def run(self):
         print("Running node {}".format(self.execname))
@@ -128,19 +128,26 @@ class CVNode(Node):
                 break
 
 class IOElement(tk.Frame):
-    def __init__(self, parent, node, name, *args, **kwargs):
+    def __init__(self, parent, node, data, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.config(bg=BODY_COLOR)
+        
+        self.hoveringConnectionWidget = None
+        self.connectionLine = None
         self.is_connected = False
         self.waiting_connection = False
 
         self.node = node
-        self.name = name
+        self.data = data
+        self.name = self.data['name']
+
         
         self.normal = tk.PhotoImage(file="assets/images/icons/IOMedGrey-16px.png")
         self.hovered = tk.PhotoImage(file="assets/images/icons/IOLightGrey-16px.png")
         self.connected = tk.PhotoImage(file="assets/images/icons/IOGreen-16px.png")
+        self.error = tk.PhotoImage(file="assets/images/icons/IORed-16px.png")
+        self.canConnect = tk.PhotoImage(file="assets/images/icons/IOBlue-16px.png")
 
         self.connection = Connection()
 
@@ -151,22 +158,84 @@ class IOElement(tk.Frame):
 
         self.icon.bind("<Enter>", self.hover)
         self.icon.bind("<Leave>", self.unhover)
-        self.icon.bind("<ButtonPress-1>", self.connect)
         
+        self.icon.bind("<ButtonPress-1>", self.startConnect)
+        self.icon.bind("<B1-Motion>", self.moveConnect)
+        self.icon.bind("<ButtonRelease-1>", self.releaseConnect)
+        
+        self.icon.bind("<<TryConnect>>", self.tryConnect)
+        self.icon.bind("<<EnterCanConnect>>", self.hoverCanConnect)
+        self.icon.bind("<<EnterCannotConnect>>", self.hoverCannotConnect)        
     
     def hover(self, event):
         if not self.is_connected and not self.waiting_connection:
             self.icon.config(image=self.hovered)
     
+    def hoverCanConnect(self, event):
+        if not self.is_connected and not self.waiting_connection:
+            self.icon.config(image=self.canConnect)
+
+    def hoverCannotConnect(self, event):
+        if not self.is_connected and not self.waiting_connection:
+            self.icon.config(image=self.error)
+    
     def unhover(self, event):
         if not self.is_connected and not self.waiting_connection:
             self.icon.config(image=self.normal)
     
-    def connect(self, event):
+    def startConnect(self, event):
         if not self.waiting_connection:
             self.icon.config(image=self.connected)
             self.waiting_connection = True
         # x = event.widget.winfo_rootx() - self.parent
+    
+    def moveConnect(self,event):
+        #draw the line
+        x,y = self.getCenterOnCanvas()
+        if self.connectionLine:
+            self.node.canvas.delete(self.connectionLine)
+            self.connectionLine = None
+        self.connectionLine = self.node.canvas.create_line(x, y, x+event.x-self.icon.winfo_width()/2, y+event.y-self.icon.winfo_height()/2, fill="white", width=2, smooth=True)
+        
+        #hover Connection
+        hoveringWidget = self.winfo_containing(event.x_root, event.y_root)
+        if hoveringWidget != self.hoveringConnectionWidget:
+            if self.hoveringConnectionWidget:
+                self.hoveringConnectionWidget.event_generate("<Leave>")
+            if hasattr(hoveringWidget.master, "data"):
+                if self.data['type'] == hoveringWidget.master.data['type']:
+                    hoveringWidget.event_generate("<<EnterCanConnect>>")
+                else:
+                    hoveringWidget.event_generate("<<EnterCannotConnect>>")
+
+            self.hoveringConnectionWidget = hoveringWidget
+            #self.hoveringConnectionWidget.event_generate("<<EnterConnect>>")
+    
+    def releaseConnect(self, event):
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        widget.event_generate("<<TryConnect>>")
+        if not self.is_connected:
+            self.icon.config(image=self.normal)
+            self.waiting_connection = False
+            if self.connectionLine:
+                self.node.canvas.delete(self.connectionLine)
+
+        
+    
+    def getCenterOnCanvas(self):
+        canvasX = self.node.canvas.winfo_rootx()
+        canvasY = self.node.canvas.winfo_rooty()
+
+        selfX = self.icon.winfo_rootx()
+        selfY = self.icon.winfo_rooty()
+        
+        x = selfX - canvasX + self.icon.winfo_width()/2
+        y = selfY - canvasY + self.icon.winfo_height()/2
+        
+        return (x, y)
+    
+    def tryConnect(self, e):
+        print('try connect')
 
     
 
@@ -179,12 +248,12 @@ class NodeInput(IOElement):
         txt = self.name
         self.text.configure(text=txt)
         self.text.pack(side="left")
-
-        self.icon.bind("<ButtonRelease-1>", self.close_connection)
-
-    def close_connection(self, e):
+        
+        self.icon.bind("<<Connect>>", self.connect)
+        
+    def connect(self, event):
+        print("Connecting input {}".format(self.name))
         for node in self.node.graph.nodes:
-            print("Node: {}".format(node.execname))
             if node.execname == self.node.execname:
                 continue
             for output in node.cvFunctionOutput:
@@ -194,12 +263,7 @@ class NodeInput(IOElement):
                     output["node_gui"].waiting_connection = False
                     output["node_gui"].is_connected = True
                     self.is_connected = True
-                    output["node_gui"].connection = self.connection
-
-        print("Input node: {}".format(self.connection.inputNode.execname))
-        print("Output node: {}".format(self.connection.outputNode.execname))
-        print("Output values: {}".format(self.connection.outputNode.kwvalues))
-                    
+                    output["node_gui"].connection = self.connection       
 
 
 class NodeOutput(IOElement):
@@ -222,7 +286,7 @@ class ConnectionBezier:
         self.color = color
         self.width = width
 
-        self.canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.color, width=self.width, smooth=True)
+        self.line = self.canvas.create_line(self.x1, self.y1, self.x2, self.y2, fill=self.color, width=self.width, smooth=True)
     
     def create_bezier(self, c1, c2, c3, c4, **kwargs):
         # Start x and y coordinates, when t = 0
@@ -254,6 +318,8 @@ class Connection:
         self.outputNode = None
         self.id_in = None
         self.id_out = None
+        
+        self.bezier = None
 
     
     def setInputNode(self, node):

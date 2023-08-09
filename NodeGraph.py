@@ -33,7 +33,7 @@ class NodeGraph(tk.Frame):
             
     def add_node(self, ev, nodeName):
         print("Adding node: {}".format(nodeName))
-        node = CVNode(self, self.canvas, nodeName)
+        node = CVNode(self, nodeName)
         self.selectedNode = None
         #self.node.cvFunctionArgs[0]["value"] = "/home/mattia/opencv-gui/assets/images/test/skyfhd.jpg"
         canvasFrame = self.canvas.create_window(200, 200, window=node, anchor="n")

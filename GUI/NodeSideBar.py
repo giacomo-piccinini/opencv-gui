@@ -2,7 +2,8 @@ import tkinter as tk
 import cv2
 import json
 from PIL import Image, ImageTk
-from SideBarParams import SizeField, FilePickerField, ComboboxField
+import numpy as np
+from SideBarParams import SizeField, FilePickerField, ComboboxField, DataField, DepthField
 
 
 class NodeSideBar(tk.Frame):
@@ -23,6 +24,13 @@ class NodeSideBar(tk.Frame):
         self.playimg = tk.PhotoImage(file="assets/images/icons/collaps_arrow_left_16px.png")
         self.playIcon = tk.Label(self.playFrame, image=self.playimg, bg="#444444")
         self.playIcon.pack()
+
+
+        self.playallFrame = tk.Frame(self, bg="#444444")
+        self.playallFrame.pack()
+        self.playallimg = tk.PhotoImage(file="assets/images/icons/collaps_arrow_left_16px.png")
+        self.playallIcon = tk.Label(self.playallFrame, image=self.playallimg, bg="#444444")
+        self.playallIcon.pack()
 
         self.dragHandle = tk.Frame(self, bg="#444444", width=6, cursor="sb_h_double_arrow")
         self.dragHandle.pack(fill="y", side="left")
@@ -69,6 +77,7 @@ class NodeSideBar(tk.Frame):
 
         #---------------------------------------
 
+
         self.previewCollapsArrow.bind("<ButtonPress-1>", self.toggle_preview_frame)
         self.paramsCollapsArrow.bind("<ButtonPress-1>", self.toggle_params_frame)
 
@@ -88,9 +97,10 @@ class NodeSideBar(tk.Frame):
         self.dragHandle.bind("<Leave>", self.dragHandleUnhover)
         self.dragHandle.bind("<B1-Motion>", self.dragHandleMove)
 
-        self.playIcon.bind("<ButtonPress-1>", self.run_nodes)
+        self.playIcon.bind("<ButtonPress-1>", self.run_node)
+        self.playallIcon.bind("<ButtonPress-1>", self.run_chain)
 
-        #self.bind("<Configure>", self.update_sidebar)
+        self.bind("<Configure>", self.update_sidebar)
 
     def toggle_params_frame(self, event):
         if not self.paramsContentFrame.winfo_ismapped():
@@ -138,34 +148,49 @@ class NodeSideBar(tk.Frame):
         #resize the image to be contained in the preview mantaining the aspect ratio
         maxw = self.preview.winfo_width()
         maxh = self.preview.winfo_height()
-        w = self.img.shape[1]
-        h = self.img.shape[0]
 
-        # print("maxw: " + str(maxw) + " maxh: " + str(maxh) + " w: " + str(w) + " h: " + str(h))
+        if self.img is not None:
+            w = self.img.shape[1]
+            h = self.img.shape[0]
+            rimg = []
+            rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
+            if len(self.img.shape) < 3:
+                self.im = Image.fromarray(rimg)
+            else:
+                b,g,r = cv2.split(rimg)
+                ruimg = cv2.merge((r,g,b))
+                # self.im = Image.fromarray((ruimg*255).astype(np.uint8))
+                self.im = Image.fromarray(ruimg)
 
-        rimg = []
-        #if w > h:
-        rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
-        #else:
-        #    rimg = cv2.resize(self.img, (int(maxh*w/h), maxh))
-
-        b,g,r = cv2.split(rimg)
-        ruimg = cv2.merge((r,g,b))
-        self.im = Image.fromarray(ruimg)
-        self.imgtk = ImageTk.PhotoImage(image=self.im)
-        self.preview.config(image=self.imgtk)
+            self.imgtk = ImageTk.PhotoImage(image=self.im)
+            self.preview.config(image=self.imgtk)
+        else:
+            self.preview.config(image='')
     
     def update_sidebar_content(self, event):
         self.entries.clear()
         #self.img = self.node.run()
 
         # update preview
+        maxw = self.preview.winfo_width()
+        maxh = self.preview.winfo_height()
+
         self.img = self.node.last_result
         if self.img is not None:
-            b,g,r = cv2.split(self.img)
-            ruimg = cv2.merge((r,g,b))
-            im = Image.fromarray(ruimg)
-            self.imgtk = ImageTk.PhotoImage(image=im)
+            w = self.img.shape[1]
+            h = self.img.shape[0]
+            rimg = []
+            rimg = cv2.resize(self.img, (maxw, int(maxw*h/w)))
+            
+            if (len(self.img.shape) < 3):
+                self.im = Image.fromarray(rimg)
+            else:
+                print("Number of channels: {}".format(len(self.img.shape)))
+                b,g,r = cv2.split(rimg)
+                ruimg = cv2.merge((r,g,b))
+                self.im = Image.fromarray(ruimg)
+                # self.im = Image.fromarray((ruimg*255).astype(np.uint8))
+            self.imgtk = ImageTk.PhotoImage(image=self.im)
             self.preview.config(image=self.imgtk)
         else:
             self.preview.config(image='')
@@ -178,15 +203,18 @@ class NodeSideBar(tk.Frame):
         for input in self.node.cvFunctionArgs:
             if input["type"] == "filepicker":
                 self.entries.append(FilePickerField(self.paramsContentFrame, data=input))
-            if input["type"] == "imreadModes":
+            elif input["type"] == "imreadModes":
                 self.entries.append(ComboboxField(self.paramsContentFrame, data=input, params=self.enums_data["imreadModes"]))
-            if input["type"] == "Size":
+            elif input["type"] == "Size":
                 self.entries.append(SizeField(self.paramsContentFrame, data=input))
-            if input["type"] == "Point":
+            elif input["type"] == "Point":
                 self.entries.append(SizeField(self.paramsContentFrame, data=input))
-            if input["type"] == "borderType":
+            elif input["type"] == "borderType":
                 self.entries.append(ComboboxField(self.paramsContentFrame, data=input, name=input["name"], params=self.enums_data["borderType"]))
-            
+            elif input["type"] == "int":
+                self.entries.append(DepthField(self.paramsContentFrame, data=input, name=input["name"]))
+            # elif input["type"] == "bool":
+            #     self.entries.append(CheckboxField(self.paramsContentFrame, data=input))
 
         
         self.paramsFrame.pack(fill="x")
@@ -199,7 +227,7 @@ class NodeSideBar(tk.Frame):
         #self.previewTitle.config(text=node.title.cget("text"))
         self.update_sidebar_content(None)
 
-    def run_nodes(self, event):
+    def run_node(self, event):
         # for node in self.parent.nodes:
         #     result = node.run()
         #     i = 0               # output value index
@@ -208,8 +236,11 @@ class NodeSideBar(tk.Frame):
 
         #self.parent.nodes[0].run_chain()
         self.img = self.node.run()
-        self.update_sidebar(None)
+        self.update_sidebar_content(None)
 
+    def run_chain(self, event):
+        self.parent.nodes[0].run_chain()
+        self.update_sidebar_content(None)
     
     def set_combo_value(self, event, input, id):
         print("Index: {}".format(id))

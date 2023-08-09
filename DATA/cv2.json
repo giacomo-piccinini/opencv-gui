@@ -56,6 +56,51 @@
                     "type": "mat"
                 }
             ]
+        },
+        {
+            "name": "boxFilter",
+            "exec": "boxFilter",
+            "params": [
+                {
+                    "name": "src",
+                    "type": "mat",
+                    "required": true
+                },
+                {
+                    "name": "ddepth",
+                    "type": "int",
+                    "required": true
+                },
+                {
+                    "name": "ksize",
+                    "type": "Size",
+                    "required": true
+                },
+                {
+                    "name": "anchor",
+                    "type": "Point",
+                    "required" : false,
+                    "default": "-1,-1"
+                },
+                {
+                    "name": "normalize",
+                    "type": "bool",
+                    "required": false,
+                    "default": true
+                },
+                {
+                    "name": "borderType",
+                    "type": "borderType",
+                    "required": false,
+                    "default": "BORDER_DEFAULT"
+                }
+            ],
+            "return": [
+                {
+                    "name": "src",
+                    "type": "mat"
+                }
+            ]
         }
     ]
 }

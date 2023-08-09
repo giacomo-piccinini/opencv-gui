@@ -263,7 +263,13 @@ class NodeInput(IOElement):
                     output["node_gui"].waiting_connection = False
                     output["node_gui"].is_connected = True
                     self.is_connected = True
-                    output["node_gui"].connection = self.connection       
+                    output["node_gui"].connection = self.connection
+                    output["node_gui"].connection.send_result(output["name"], self.connection.inputNode.last_result)
+
+        print("Input node: {}".format(self.connection.inputNode.execname))
+        print("Output node: {}".format(self.connection.outputNode.execname))
+        print("Output values: {}".format(self.connection.outputNode.kwvalues))
+                    
 
 
 class NodeOutput(IOElement):

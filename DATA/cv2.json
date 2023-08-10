@@ -58,6 +58,39 @@
             ]
         },
         {
+            "name": "spatialGradient",
+            "exec": "spatialGradient",
+            "params": [
+                {
+                    "name": "src",
+                    "type": "mat",
+                    "required": true
+                },
+                {
+                    "name": "ksize",
+                    "type": "int",
+                    "required": false,
+                    "default": 3
+                },
+                {
+                    "name": "borderType",
+                    "type": "borderType",
+                    "required": false,
+                    "default": "BORDER_DEFAULT"
+                }
+            ],
+            "return": [
+                {
+                    "name": "dx",
+                    "type": "mat"
+                },
+                {
+                    "name": "dy",
+                    "type": "mat"
+                }
+            ]
+        },
+        {
             "name": "boxFilter",
             "exec": "boxFilter",
             "params": [

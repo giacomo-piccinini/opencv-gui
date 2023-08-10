@@ -44,19 +44,17 @@ class CVNode(Node):
         self.enums = json.load(open("DATA/enums.json"))
         
         self.execname = execname
-        #self.var1 = 'assets/images/icons/IOGreen-16px.png'
-        #self.var2 = 1
-
         self.values = [] #[self.var1, self.var2]
         self.kwvalues = {}
 
-        self.cvFunctionArgs = []                    # input params type + default
-        self.cvFunctionOutput = []                  # output type
+        self.cvFunctionArgs = []                     # List of NodeInput(IOElements)
+        self.cvFunctionOutput = []                   # List of NodeOutput(IOElements)
         
-        self.outputElements = []
-        self.inputElements = []
+        self.outputConnections = []
+        self.inputConnections = []
 
-        self.last_result = None
+        self.lastResult = None                       # store last computed result of the function
+        self.isLastResultUpdated = False             # flag to check if the last result is updated
 
         self.init_node()
         self.init_gui()
@@ -86,8 +84,7 @@ class CVNode(Node):
                 "type": ret["type"]
             }
             self.cvFunctionOutput.append(dd)
-
-            
+       
     def init_gui(self):
         self.title.config(text=self.execname)
 
@@ -95,6 +92,9 @@ class CVNode(Node):
             output['node_gui'] = NodeOutput(self.body, self, output)
         for input in self.cvFunctionArgs:
             input['node_gui'] = NodeInput(self.body, self, input)
+        
+        print("Input: {}".format(self.cvFunctionArgs))
+        print("Output: {}".format(self.cvFunctionOutput))
 
     def run(self):
         print("Running node {}".format(self.execname))
@@ -112,12 +112,12 @@ class CVNode(Node):
         return res
     
     def run_chain(self):
-        result = self.run()
-        print("Result type: {}".format(type(result)))
-        for outputElem in self.cvFunctionOutput:
-            if outputElem["node_gui"].connection.outputNode is not None:
-                outputElem["node_gui"].connection.send_result(outputElem["name"], result)
-                outputElem["node_gui"].connection.outputNode.run_chain()
+        results = self.run()
+        print("Result type: {}".format(type(results)))
+        for outputElemId, outputElem in enumerate(self.cvFunctionOutput):
+            for connection in outputElem["node_gui"].connections:
+                    connection.send_result(outputElem["name"], result)
+                    connection.outputNode.run_chain()
                 
         # output.conenssione.nodeoconnesso.run_chain()
 
@@ -137,7 +137,8 @@ class IOElement(tk.Frame):
         self.connectionLine = None
         self.is_connected = False
         self.waiting_connection = False
-
+        self.connections = []
+        
         self.node = node
         self.data = data
         self.name = self.data['name']
@@ -149,7 +150,7 @@ class IOElement(tk.Frame):
         self.error = tk.PhotoImage(file="assets/images/icons/IORed-16px.png")
         self.canConnect = tk.PhotoImage(file="assets/images/icons/IOBlue-16px.png")
 
-        self.connection = Connection()
+
 
         self.text = tk.Label(self, text="null", bg=BODY_COLOR, fg="#ffffff", font=("Open Sans", 10))
         self.icon = tk.Label(self, image=self.normal, bg=BODY_COLOR)
@@ -185,9 +186,8 @@ class IOElement(tk.Frame):
     
     def startConnect(self, event):
         if not self.waiting_connection:
-            self.icon.config(image=self.connected)
+            self.icon.config(image=self.canConnect)
             self.waiting_connection = True
-        # x = event.widget.winfo_rootx() - self.parent
     
     def moveConnect(self,event):
         #draw the line
@@ -217,8 +217,8 @@ class IOElement(tk.Frame):
         if not self.is_connected:
             self.icon.config(image=self.normal)
             self.waiting_connection = False
-            if self.connectionLine:
-                self.node.canvas.delete(self.connectionLine)
+        if self.connectionLine:
+            self.node.canvas.delete(self.connectionLine)
 
         
     
@@ -235,16 +235,28 @@ class IOElement(tk.Frame):
         return (x, y)
     
     def tryConnect(self, e):
-        print('try connect')
-
-    
+        for node in self.node.graph.nodes:
+            for port in node.cvFunctionOutput + node.cvFunctionArgs:
+                if port["node_gui"].waiting_connection:
+                    if port["node_gui"].data["type"] == self.data["type"]:
+                        fromIO = self if self.IOtype == "output" else port["node_gui"]
+                        toIO = self if self.IOtype == "input" else port["node_gui"]
+                        self.node.graph.add_connection(fromIO, toIO)
+                        self.is_connected = True
+                        self.waiting_connection = False
+                        port["node_gui"].is_connected = True
+                        port["node_gui"].waiting_connection = False
+                    
+ 
+    def setValue(self, value):
+        self.data["value"] = value
 
 
 class NodeInput(IOElement):
     def __init__(self, *args, **kwargs):
         IOElement.__init__(self, *args, **kwargs)
         self.icon.pack(side="left")
-        
+        self.IOtype = "input"
         txt = self.name
         self.text.configure(text=txt)
         self.text.pack(side="left")
@@ -258,6 +270,7 @@ class NodeInput(IOElement):
                 continue
             for output in node.cvFunctionOutput:
                 if output["node_gui"].waiting_connection:
+                    self.node.graph.add_connection(self, output["node_gui"])
                     self.connection.inputNode = node
                     self.connection.outputNode = self.node
                     output["node_gui"].waiting_connection = False
@@ -276,6 +289,7 @@ class NodeOutput(IOElement):
     def __init__(self, *args, **kwargs):
         IOElement.__init__(self, *args, **kwargs)
         self.icon.pack(side="right")
+        self.IOtype = "output"
 
         txt = self.name
         self.text.configure(text=txt)
@@ -317,38 +331,46 @@ class ConnectionBezier:
         return line_ids
     
 class Connection:
-    def __init__(self):
-        self.inputValue = None
-        self.outputValue = None
-        self.inputNode = None
-        self.outputNode = None
-        self.id_in = None
-        self.id_out = None
+    def __init__(self, nodegraph, fromIO : NodeOutput, toIO : NodeInput):
+
+        self.fromIO = fromIO
+        self.toIO = toIO
+        self.nodegraph = nodegraph
         
-        self.bezier = None
+        self.transmittedValue = None
+        
+        self.line = None
+        self.drawLine()
 
+    def drawLine(self):
+        startX, startY = self.fromIO.getCenterOnCanvas()
+        endX, endY = self.toIO.getCenterOnCanvas()
+        
+        #self.connectionLine = self.nodegraph.canvas.create_line(startX, startY, endX, endY,  fill="white", width=2, smooth=True)
+        line_ids = []
+        n = 15
+        p = [(startX, startY), (startX + 100, startY), (endX - 100, endY), (endX, endY)]
+        for i in range(n+1):
+            t = i / n
+            x = (p[0][0] * (1-t)**3 + p[1][0] * 3 * t * (1-t)**2 + p[2][0] * 3 * t**2 * (1-t) + p[3][0] * t**3)
+            y = (p[0][1] * (1-t)**3 + p[1][1] * 3 * t * (1-t)**2 + p[2][1] * 3 * t**2 * (1-t) + p[3][1] * t**3)
+
+            line_ids.append(self.nodegraph.canvas.create_line(x, y, startX, startY, fill='white', width=2, smooth=1))
+            
+            startX = x
+            startY = y
+        
+        self.line = line_ids
     
-    def setInputNode(self, node):
-        self.inputNode = node
-    
-    def setOutputNode(self, node):
-        self.outputNode = node
-    
-    def setInputValue(self, val):
-        self.inputValue = val
-
-    def setOutputValue(self, val):
-        self.outputValue = val
-
-    def set_ids(self, id_in, id_out):
-        self.id_in = id_in
-        self.id_out = id_out
-
-    def send_result(self, name, result):
-        # print(self.outputNode.cvFunctionArgs[self.outputNode.inputElements.index(self)]["index"])
-        self.outputNode.set_value(name, result)
-        # self.outputNode.set_value(1, (5,5))
-        # self.outputNode.set_value(2, (2,2))
+    def updateLine(self):
+        for l in self.line:
+            self.nodegraph.canvas.delete(l)
+        #self.nodegraph.canvas.delete(self.line)
+        self.drawLine()
+  
+    def propagateResult(self, name, result):
+        self.toIO.setValue(name, result)
+        
 
     
 

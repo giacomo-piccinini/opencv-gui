@@ -1,5 +1,6 @@
 import tkinter as tk
-from Node import Node, CVNode
+import sys
+from Node import Node, CVNode, Connection
 import json
 from GUI.NodeSideBar import NodeSideBar
 
@@ -17,6 +18,7 @@ class NodeGraph(tk.Frame):
         self.canvas.config(highlightthickness=0, borderwidth=0)
 
         self.nodes = []
+        self.connections = []
 
         self.nodeSidebar = NodeSideBar(self)
         self.nodeSidebar.tkraise()
@@ -33,11 +35,11 @@ class NodeGraph(tk.Frame):
             
     def add_node(self, ev, nodeName):
         print("Adding node: {}".format(nodeName))
-        node = CVNode(self, nodeName)
         self.selectedNode = None
-        #self.node.cvFunctionArgs[0]["value"] = "/home/mattia/opencv-gui/assets/images/test/skyfhd.jpg"
+        node = CVNode(self, nodeName)
+
         canvasFrame = self.canvas.create_window(200, 200, window=node, anchor="n")
-        self.canvas.itemconfig(canvasFrame,width=200,height=200)
+        self.canvas.itemconfig(canvasFrame,width=200)#,height=200)
         
         node.title.bind("<ButtonPress-1>", lambda e: self.select_node(e, node, canvasFrame))
         node.titleFrame.bind("<ButtonPress-1>", lambda e: self.move_node_mouse(e, node, canvasFrame))
@@ -46,6 +48,14 @@ class NodeGraph(tk.Frame):
         
         self.nodes.append(node)
         
+    def add_connection(self, fromIO, toIO):
+        print("Adding connection: {} -> {}".format(fromIO, toIO))
+        newConnection = Connection(self, fromIO, toIO)
+        self.connections.append(newConnection)
+        
+        fromIO.node.outputConnections.append(newConnection)
+        toIO.node.inputConnections.append(newConnection)
+        pass
 
     def canvas_button_left(self, event):
         self.selectedNode.hightlight(False)
@@ -65,7 +75,6 @@ class NodeGraph(tk.Frame):
         self.selectedNode.hightlight(True)
     
     def select_node(self, click_event, node: Node, node_canvas_id):
-
         self.selectedNode = node
         self.set_highlights()
         self.nodeSidebar.re_place()
@@ -79,6 +88,8 @@ class NodeGraph(tk.Frame):
     def move_node(self, drag_event, click_event, node, node_canvas_id):
         node_coords = self.canvas.coords(node_canvas_id)
         self.canvas.coords(node_canvas_id, node_coords[0]+drag_event.x-click_event.x, node_coords[1]+drag_event.y-click_event.y)
+        for connection in node.inputConnections + node.outputConnections:
+            connection.updateLine()
 
     # def create_connection(self):
     #     for node in self.parent.parent.nodes:

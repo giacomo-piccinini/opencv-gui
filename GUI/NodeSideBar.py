@@ -175,7 +175,7 @@ class NodeSideBar(tk.Frame):
         maxw = self.preview.winfo_width()
         maxh = self.preview.winfo_height()
 
-        self.img = self.node.last_result
+        self.img = self.node.lastResult
         if self.img is not None:
             w = self.img.shape[1]
             h = self.img.shape[0]

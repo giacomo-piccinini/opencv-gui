@@ -52,6 +52,7 @@ class NodeGraph(tk.Frame):
         print("Adding connection: {} -> {}".format(fromIO, toIO))
         newConnection = Connection(self, fromIO, toIO)
         self.connections.append(newConnection)
+        fromIO.connections.append(newConnection)
         
         fromIO.node.outputConnections.append(newConnection)
         toIO.node.inputConnections.append(newConnection)

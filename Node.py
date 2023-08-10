@@ -40,15 +40,16 @@ class CVNode(Node):
     def __init__(self, graph, execname, *args, **kwargs):
         Node.__init__(self, graph, *args, **kwargs)
                       
-        self.data = json.load(open("DATA/cv2.json"))
+        self.cvFunctionsLib = json.load(open("DATA/cv2.json"))
         self.enums = json.load(open("DATA/enums.json"))
         
         self.execname = execname
-        self.values = [] #[self.var1, self.var2]
-        self.kwvalues = {}
+        self.title.config(text=self.execname)
+        # self.values = [] #[self.var1, self.var2]
+        # self.kwvalues = {}
 
         self.cvFunctionArgs = []                     # List of NodeInput(IOElements)
-        self.cvFunctionOutput = []                   # List of NodeOutput(IOElements)
+        self.cvFunctionReturns = []                   # List of NodeOutput(IOElements)
         
         self.outputConnections = []
         self.inputConnections = []
@@ -57,59 +58,86 @@ class CVNode(Node):
         self.isLastResultUpdated = False             # flag to check if the last result is updated
 
         self.init_node()
-        self.init_gui()
+        #self.init_gui()
 
     def init_node(self):
-        for func in self.data["functions"]:
-            if func["name"] == self.execname:
-                self.funcdata = func
+        #Load function data in self.funcData
+        for func in self.cvFunctionsLib["functions"]:
+            if func["exec"] == self.execname:
+                self.funcData = func
                 break
-
-        for arg in self.funcdata["params"]:
-            dd = {
+        
+        #Prepare for function arguments
+        for arg in self.funcData["params"]:
+            data = {
                 "name": arg["name"],
                 "type": arg["type"],
                 "value": arg["default"] if "default" in arg else None
             }
             
-            # convert value (string) to tuple
-            if dd["type"] == "Point":
-                dd["value"] = tuple(map(int, dd["value"].split(",")))
+            # convert strings to correct values
+            if data["type"] == "Point":
+                data["value"] = tuple(map(int, data["value"].split(",")))
 
-            self.cvFunctionArgs.append(dd)
+            self.cvFunctionArgs.append(NodeInput(self.body, self, data))
 
-        for ret in self.funcdata["return"]:
-            dd = {
+        for ret in self.funcData["return"]:
+            data = {
                 "name": ret["name"],
-                "type": ret["type"]
+                "type": ret["type"],
+                "value": None
             }
-            self.cvFunctionOutput.append(dd)
+            self.cvFunctionReturns.append(NodeOutput(self.body, self, data))
        
-    def init_gui(self):
-        self.title.config(text=self.execname)
+    # def init_gui(self):
+    #     self.title.config(text=self.execname)
 
-        for output in self.cvFunctionOutput:
-            output['node_gui'] = NodeOutput(self.body, self, output)
-        for input in self.cvFunctionArgs:
-            input['node_gui'] = NodeInput(self.body, self, input)
+    #     for output in self.cvFunctionOutput:
+    #         output['node_gui'] = NodeOutput(self.body, self, output)
+    #     for input in self.cvFunctionArgs:
+    #         input['node_gui'] = NodeInput(self.body, self, input)
         
-        print("Input: {}".format(self.cvFunctionArgs))
-        print("Output: {}".format(self.cvFunctionOutput))
+    #     print("Input: {}".format(self.cvFunctionArgs))
+    #     print("Output: {}".format(self.cvFunctionOutput))
 
     def run(self):
         print("Running node {}".format(self.execname))
         # print("Values: {}".format(self.values))
-        func = getattr(cv2, self.funcdata["name"])
+        func = getattr(cv2, self.funcData["exec"])
+        kwvalues = {}
         for i in range(len(self.cvFunctionArgs)):
-            if self.cvFunctionArgs[i]["type"] in self.enums:
-                self.kwvalues[self.cvFunctionArgs[i]["name"]] = getattr(cv2, self.cvFunctionArgs[i]["value"])
+            if self.cvFunctionArgs[i].data["type"] in self.enums:
+                kwvalues[self.cvFunctionArgs[i].data["name"]] = getattr(cv2, self.cvFunctionArgs[i].data["value"])
             else:
-                self.kwvalues[self.cvFunctionArgs[i]["name"]] = self.cvFunctionArgs[i]["value"]
-        print("Kwvalues: {}".format(self.kwvalues))
-        res = func(**self.kwvalues)
-        # print("Result: {}".format(res))
-        self.last_result = res
-        return res
+                kwvalues[self.cvFunctionArgs[i].data["name"]] = self.cvFunctionArgs[i].data["value"]
+        print("Kwvalues: {}".format(kwvalues))
+        
+        result = func(**kwvalues)
+        numberOfresults = len(self.cvFunctionReturns)
+        if numberOfresults > 1:
+            for i in range(len(self.cvFunctionReturns)):
+                self.cvFunctionReturns[i].data["value"] = result[i]
+                self.cvFunctionReturns[i].propagateData()
+        elif numberOfresults == 1:
+            self.cvFunctionReturns[0].data["value"] = result
+            self.cvFunctionReturns[0].propagateData()
+        else:
+            print("Error: No output")
+
+        # #print(type(result))
+        # results = []
+        # results.append(result)
+        # print(type(results[0]))
+        # results.extend(res)
+        
+        # self.lastResult = results
+        
+        # for i in range(len(self.cvFunctionReturns)):
+        #     self.cvFunctionReturns[i].data["value"] = result
+            
+        #     print("Result: {}".format(self.cvFunctionReturns[i].data))
+        
+        return result
     
     def run_chain(self):
         results = self.run()
@@ -128,7 +156,7 @@ class CVNode(Node):
                 break
 
 class IOElement(tk.Frame):
-    def __init__(self, parent, node, data, *args, **kwargs):
+    def __init__(self, parent, node: CVNode, data, *args, **kwargs):
         tk.Frame.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.config(bg=BODY_COLOR)
@@ -236,16 +264,16 @@ class IOElement(tk.Frame):
     
     def tryConnect(self, e):
         for node in self.node.graph.nodes:
-            for port in node.cvFunctionOutput + node.cvFunctionArgs:
-                if port["node_gui"].waiting_connection:
-                    if port["node_gui"].data["type"] == self.data["type"]:
-                        fromIO = self if self.IOtype == "output" else port["node_gui"]
-                        toIO = self if self.IOtype == "input" else port["node_gui"]
+            for port in node.cvFunctionReturns + node.cvFunctionArgs:
+                if port.waiting_connection:
+                    if port.data["type"] == self.data["type"]:
+                        fromIO = self if self.IOtype == "output" else port
+                        toIO = self if self.IOtype == "input" else port
                         self.node.graph.add_connection(fromIO, toIO)
                         self.is_connected = True
                         self.waiting_connection = False
-                        port["node_gui"].is_connected = True
-                        port["node_gui"].waiting_connection = False
+                        port.is_connected = True
+                        port.waiting_connection = False
                     
  
     def setValue(self, value):
@@ -294,6 +322,13 @@ class NodeOutput(IOElement):
         txt = self.name
         self.text.configure(text=txt)
         self.text.pack(side="right")
+
+    def propagateData(self):
+        print("IOelement sending data")
+        print(len(self.connections))
+        for connect in self.connections:
+            connect.propagateResult(self.data['value'])
+            
 
 class ConnectionBezier:
     def __init__(self, canvas, x1, y1, x2, y2, color="#ffffff", width=2):
@@ -368,8 +403,9 @@ class Connection:
         #self.nodegraph.canvas.delete(self.line)
         self.drawLine()
   
-    def propagateResult(self, name, result):
-        self.toIO.setValue(name, result)
+    def propagateResult(self, result):
+        self.toIO.setValue(result)
+        print("Propagating result: {}".format(result)+" to {}".format(self.toIO.name))
         
 
     

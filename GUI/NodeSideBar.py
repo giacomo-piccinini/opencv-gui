@@ -82,11 +82,11 @@ class NodeSideBar(tk.Frame):
         self.paramsCollapsArrow.bind("<ButtonPress-1>", self.toggle_params_frame)
 
 
-        self.img = cv2.imread('assets/images/icons/sliderIcon.png')
-        self.im = Image.fromarray(self.img)
-        self.imgtk = ImageTk.PhotoImage(image=self.im) 
+        self.img = None
+        # self.im = Image.fromarray(self.img)
+        #self.imgtk = ImageTk.PhotoImage(image=self.im) 
 
-        self.preview = tk.Label(self.previewContentFrame, image=self.imgtk, bg="#999999", fg="#ffffff", font=("Open Sans", 12))
+        self.preview = tk.Label(self.previewContentFrame, bg="#999999", fg="#ffffff", font=("Open Sans", 12)) # image=self.imgtk,
         self.preview.pack(fill="x", side="top", padx=5, pady=5)
 
         # self.paramsFrame.pack(fill="both", expand=True, side="left")
@@ -130,7 +130,6 @@ class NodeSideBar(tk.Frame):
     def dragHandleMove(self, event):
         self.width = self.width - event.x
         self.place(x = self.parent.winfo_width() - self.width, y = 0, width = self.width, height = self.parent.winfo_height())
-        print(self.width)
 
     def toggle_preview(self, event):
         if self.previewItem.winfo_height() == 0:
@@ -175,7 +174,13 @@ class NodeSideBar(tk.Frame):
         maxw = self.preview.winfo_width()
         maxh = self.preview.winfo_height()
 
-        self.img = self.node.lastResult
+        for result in self.node.cvFunctionReturns:
+            if result.data['type'] == 'mat':
+                if result.data['value'] is not None:
+                    self.img = result.data['value']
+                    break
+        print(type(self.img))
+
         if self.img is not None:
             w = self.img.shape[1]
             h = self.img.shape[0]
@@ -201,25 +206,25 @@ class NodeSideBar(tk.Frame):
 
         # add new params
         for input in self.node.cvFunctionArgs:
-            if input["type"] == "filepicker":
-                self.entries.append(FilePickerField(self.paramsContentFrame, data=input))
-            elif input["type"] == "imreadModes":
-                self.entries.append(ComboboxField(self.paramsContentFrame, data=input, params=self.enums_data["imreadModes"]))
-            elif input["type"] == "Size":
-                self.entries.append(SizeField(self.paramsContentFrame, data=input))
-            elif input["type"] == "Point":
-                self.entries.append(SizeField(self.paramsContentFrame, data=input))
-            elif input["type"] == "borderType":
-                self.entries.append(ComboboxField(self.paramsContentFrame, data=input, name=input["name"], params=self.enums_data["borderType"]))
-            elif input["type"] == "int":
-                self.entries.append(DepthField(self.paramsContentFrame, data=input, name=input["name"]))
+            if input.data["type"] == "filepicker":
+                self.entries.append(FilePickerField(self.paramsContentFrame, data=input.data))
+            elif input.data["type"] == "imreadModes":
+                self.entries.append(ComboboxField(self.paramsContentFrame, data=input.data, params=self.enums_data["imreadModes"]))
+            elif input.data["type"] == "Size":
+                self.entries.append(SizeField(self.paramsContentFrame, data=input.data))
+            elif input.data["type"] == "Point":
+                self.entries.append(SizeField(self.paramsContentFrame, data=input.data))
+            elif input.data["type"] == "borderType":
+                self.entries.append(ComboboxField(self.paramsContentFrame, data=input.data, name=input.data["name"], params=self.enums_data["borderType"]))
+            elif input.data["type"] == "int":
+                self.entries.append(DepthField(self.paramsContentFrame, data=input.data, name=input.data["name"]))
             # elif input["type"] == "bool":
             #     self.entries.append(CheckboxField(self.paramsContentFrame, data=input))
 
         
         self.paramsFrame.pack(fill="x")
-        for input in self.node.cvFunctionArgs:
-            print(input["value"]) 
+        # for input in self.node.cvFunctionArgs:
+        #     print(input["value"]) 
 
 
     def set_node(self, node):
